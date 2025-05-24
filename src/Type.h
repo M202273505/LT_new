@@ -12,7 +12,8 @@ const int threadPerBlock = 512;
 const int sharedMemPerBlock = 49152;
 const int constantMem = 48 * 1024;
 const int walkerPerThread = 4;
-const int pageSize = numBlock * threadPerBlock * walkerPerThread;
+const int pageSize_GPU = numBlock * threadPerBlock * walkerPerThread;
+const int pageSize_CPU = numBlock * threadPerBlock;
 const int cachelineSize = 128;
 
 const nodeId INVALID_NODE = 0xFFFFFFFF;

@@ -43,7 +43,7 @@ public:
 };
 
 struct AppManager {
-private:
+public:
     CPUBuffer<nodeId> _h_value;
     GPUBuffer<nodeId> _d_value;
     GPUBuffer<App> _app;

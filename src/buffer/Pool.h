@@ -9,7 +9,7 @@
 
 template <typename T>
 class VectorPool {
-private:
+public:
     T **_pool;
     size_t _numPage;
     size_t _pageCapacity;
@@ -89,7 +89,7 @@ public:
 
 template <typename T>
 class ListPool {
-private:
+public:
 
     u_int32_t _numBuffer;
     u_int32_t _listCapacity;
@@ -300,7 +300,7 @@ static __global__ void _initDeviceVectorPool(DeviceVectorPool<T>* p, T* ptr, siz
 
 template <typename T>
 class GPUVectorPool {
-private:
+public:
     GPUBuffer<T*> _pool;
     size_t _numBuffer;
     size_t _pageCapacity;
@@ -530,7 +530,7 @@ static __global__ void page_pushFree(DeviceListPool<T>* p, u_int32_t pageId) {
 template <typename T>
 class GPUListPool {
 
-private:
+public:
 
     u_int32_t _numBuffer;
     u_int32_t _listCapacity;
@@ -623,9 +623,13 @@ public:
         return GPUBuffer<T>(_h_pagePtr[1] - _h_pagePtr[0], _h_pagePtr[0], _gpuId);
     }
 
-    void evict(u_int32_t i, CUDAStream &stream, CPUBuffer<T> &page) {
+    void evict(u_int32_t i, CUDAStream &stream, vector<CPUBuffer<T>> &cpuPages) {
         auto evicted = popFirstPage(i, stream);
-        page.fromAsync(evicted, stream);
+        for(int j = 0; j < cpuPages.size(); j++) {
+            auto page = cpuPages[j];
+            page.fromAsync(evicted, stream, j);
+        }
+        // page.fromAsync(evicted, stream);
 
         pushFreePage(stream, evicted);
     }

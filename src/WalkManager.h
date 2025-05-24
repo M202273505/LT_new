@@ -10,7 +10,7 @@
 
 template <typename Walker>
 class WalkManager {
-private:
+public:
     PartitionStrategy &_partitions;
     partitionId _numPartition;
     ListPool<Walker> _active;
@@ -19,7 +19,7 @@ public:
 
     WalkManager(walkId numWalker, PartitionStrategy &partitions):
         _partitions(partitions), _numPartition(partitions.numPartition()),
-        _active(_numPartition, pageSize, numWalker)
+        _active(_numPartition, pageSize_CPU, numWalker)
     {}
 
     auto getWalkerBatch(partitionId i) {
@@ -51,9 +51,20 @@ public:
     }
 
     void setEvictedWalker(GPUListPool<Walker> &gpuWalkerPool, partitionId i, CUDAStream &stream) {
-        auto batch = _active.getFreePage();
-        gpuWalkerPool.evict(i, stream, batch);
-        _active.insertPage(i, batch);
+        int numCpuPagesPerGpuPage = pageSize_GPU / pageSize_CPU;
+        vector<CPUBuffer<Walker>> cpuPages;
+        for (int j = 0; j < numCpuPagesPerGpuPage; j++) {
+            auto batch = _active.getFreePage();
+            cpuPages.emplace_back(batch);
+        }
+        gpuWalkerPool.evict(i, stream, cpuPages);
+        for (int j = 0; j < numCpuPagesPerGpuPage; j++){
+            _active.insertPage(i, cpuPages[j]);
+        }
+        
+        // auto batch = _active.getFreePage();
+        // gpuWalkerPool.evict(i, stream, batch);
+        // _active.insertPage(i, batch);
     }
 };
 
@@ -283,7 +294,7 @@ static __global__ void randomWalkOutsidePool(Walker *walkers, const u_int32_t nu
 
 template <typename App, typename Walker>
 class GPUWalkManager {
-private:
+public:
     PartitionStrategy &_partitions;
     partitionId _numPartition;
     DevicePartition *_devicePartitions;
@@ -300,7 +311,7 @@ private:
         bool set = false;
 
         for (partitionId i = 0; i < numPartition; i++) {
-            if (length(i) > pageSize) {
+            if (length(i) > pageSize_GPU) {
                 if (!set || min > length(i)) {
                     choice = i;
                     min = length(i);
@@ -315,7 +326,7 @@ public:
     GPUListPool<Walker> _active;
 
     size_t numPageRequired(walkId numWalker) {
-        return (numWalker == 0? 0: (numWalker - 1) / pageSize + 3) + _numPartition * 2;
+        return (numWalker == 0? 0: (numWalker - 1) / pageSize_GPU + 3) + _numPartition * 2;
     }
 
     bool hasOverflowRisk() {
@@ -330,7 +341,7 @@ public:
         _maxWalker(numWalker),
         _rand(numBlock, threadPerBlock, gpuId),
         _app(app),
-        _active(_numPartition, pageSize, numWalker, gpuId),
+        _active(_numPartition, pageSize_GPU, numWalker, gpuId),
         _gpuId(gpuId)
     {}
 
@@ -339,11 +350,11 @@ public:
     }
 
     void insert(GPUInitWalker<Walker> &initWalker, WalkManager<Walker> &walkman, CUDAStream &stream) {
-        GPUVectorPool<Walker> walkers(1, pageSize, _gpuId);
+        GPUVectorPool<Walker> walkers(1, pageSize_GPU, _gpuId);
         initWalker.reset();
 
         while (!initWalker.done()) {
-            walkId length = pageSize;
+            walkId length = pageSize_GPU;
             initWalker.create(walkers[0], length, _rand, stream);
             insertPushedToQueue<<<numBlock, threadPerBlock, 0, stream.get()>>>(_active.devicePtr(), walkers[0], length, _numPartition, _devicePartitions);
             _active.insertFetchedPage(stream);

@@ -33,7 +33,7 @@ public:
 };
 
 struct AppManager {
-private:
+public:
     nodeId _numNode;
     walkId _numWalker;
     nodeId _pathLength;

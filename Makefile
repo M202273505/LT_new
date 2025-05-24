@@ -1,5 +1,5 @@
-CC = nvcc -Xptxas -O3
-FLAGS = -g -std=c++14
+CC = nvcc -G -Xptxas -O0 -Xcompiler -fopenmp
+FLAGS =-g -std=c++14 -O0 #-DNO_PIPELINE
 INCLUDES = -IAnyOption -Isrc
 ANYOPTION = AnyOption/anyoption.cpp
 
@@ -11,13 +11,13 @@ all: pagerank ppr genericwalk converter_trw converter_txt rm_isolated_vertices
 	$(CC) -o $@ $(FLAGS) $(INCLUDES) $< $(ANYOPTION)
 
 converter_trw: tools/convert_from_ThunderRW.cc
-	g++ -O3 -o $@ $(FLAGS) $<
+	g++ -O0 -o $@ $(FLAGS) -fopenmp $<
 
 converter_txt: tools/convert_from_txt.cc
-	g++ -O3 -o $@ $(FLAGS) $<
+	g++ -O0 -o $@ $(FLAGS) -fopenmp $<
 
 rm_isolated_vertices: tools/rm_isolated_vertices.cc
-	g++ -O3 -o $@ $(FLAGS) $<
+	g++ -O0 -o $@ $(FLAGS) -fopenmp $<
 
 clean:
 	rm pagerank ppr genericwalk converter_trw converter_txt rm_isolated_vertices

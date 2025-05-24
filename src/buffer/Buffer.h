@@ -17,7 +17,7 @@ class DiskBuffer
 
 friend class CPUBuffer<T>;
 
-private:
+public:
     FILE *_fp;
     size_t _length;
     size_t _byteOffset;
@@ -127,6 +127,10 @@ public:
         buffer.toAsync(*this, stream);
     }
 
+    void fromAsync(GPUBuffer<T> &buffer, CUDAStream &stream, int num) {
+        buffer.toAsync(*this, stream, num);
+    }
+
     void cudaRegister() {
         if (!_cudaPinned && _owner)
             cudaHostRegister((void *)_ptr, _length * sizeof(T), 0);
@@ -152,7 +156,7 @@ class GPUBuffer
 
 friend class CPUBuffer<T>;
 
-private:
+public:
     T *_ptr;
     bool _owner;
     
@@ -240,6 +244,26 @@ public:
         buffer._length = _length;
     }
 
+    void toAsync(CPUBuffer<T> &buffer, CUDAStream &stream, int num) {
+        gpuCall(cudaMemcpyAsync(buffer.ptr(), _ptr + sizeof(T) * buffer._length * num, sizeof(T) * buffer._length, cudaMemcpyDeviceToHost, stream.get()));
+        //gpuCall(cudaMemcpyAsync(buffer.ptr(), _ptr, sizeof(T) * _length, cudaMemcpyDeviceToHost, stream.get()));
+
+        #ifdef HALF_PCIE_BANDWIDTH
+        gpuCall(cudaMemcpyAsync(buffer.ptr(), _ptr, sizeof(T) * _length, cudaMemcpyDeviceToHost, stream.get()));
+        #endif
+
+        //如果可以整除 就直接刷为整数就好了把
+        if (_length % pageSize_CPU == 0)
+            buffer._length = pageSize_CPU;
+        else if(pageSize_GPU/pageSize_CPU > num) {
+            buffer._length = pageSize_CPU;
+        }else {
+            buffer._length = _length % pageSize_CPU;
+        }
+
+        //_length % pageSize_CPU;
+    }
+
     void from(GPUBuffer<T> &buffer) {
         gpuCall(cudaMemcpy(_ptr, buffer.ptr(), sizeof(T) * buffer.length(), cudaMemcpyDeviceToDevice));
 
@@ -252,6 +276,16 @@ public:
 
     void fromAsync(GPUBuffer<T> &buffer, CUDAStream &stream) {
         gpuCall(cudaMemcpyAsync(_ptr, buffer.ptr(), sizeof(T) * buffer.length(), cudaMemcpyDeviceToDevice, stream.get()));
+
+        #ifdef HALF_PCIE_BANDWIDTH
+        gpuCall(cudaMemcpyAsync(_ptr, buffer.ptr(), sizeof(T) * buffer.length(), cudaMemcpyDeviceToDevice, stream.get()));
+        #endif
+
+        _length = buffer.length();
+    }
+
+    void fromAsync(GPUBuffer<T> &buffer, CUDAStream &stream, int num) {
+        gpuCall(cudaMemcpyAsync(_ptr, buffer.ptr()+sizeof(T) * _length * num, sizeof(T) * _length, cudaMemcpyDeviceToDevice, stream.get()));
 
         #ifdef HALF_PCIE_BANDWIDTH
         gpuCall(cudaMemcpyAsync(_ptr, buffer.ptr(), sizeof(T) * buffer.length(), cudaMemcpyDeviceToDevice, stream.get()));

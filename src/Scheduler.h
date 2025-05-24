@@ -3,6 +3,7 @@
 #include <vector>
 #include <thread>
 
+#include "Type.h"
 #include "partition/PartitionStrategy.h"
 #include "GraphLoader.h"
 #include "WalkManager.h"
@@ -72,7 +73,7 @@ public:
                 computeInMemory(computed.value());
             }
 
-            if (evicted.has_value() && gpu._walkman.length(evicted.value()) >= pageSize) {
+            if (evicted.has_value() && gpu._walkman.length(evicted.value()) >= pageSize_GPU) {
                 break;
             }
 
@@ -93,7 +94,7 @@ public:
             if (i != except && gpu._graph.existed(i)) { 
                 walkId numOnGPU = gpu._walkman.length(i);
 
-                if (numOnGPU >= pageSize) {
+                if (numOnGPU >= pageSize_GPU) {
                     walkId num = numWalkerInPartition(i);
                     if (!full.has_value() || num < min_full) {
                         full = i;
@@ -134,7 +135,7 @@ public:
         for (partitionId i = 0; i < _numPartition; i++) {
             if (i != except) {
                 walkId num = numWalkerInPartition(i);
-                if (gpu._walkman.length(i) >= pageSize) {
+                if (gpu._walkman.length(i) >= pageSize_GPU) {
                     if (!choice.has_value() || num < min) {
                         choice = i;
                         min = num;
@@ -348,7 +349,7 @@ public:
 
 template <typename App, typename Walker>
 class Scheduler {
-private:
+public:
     GPUScheduler<App, Walker> scheduler;
 
     PartitionStrategy &_partitions;
@@ -429,6 +430,7 @@ public:
         while (nextPartition(choice)) {
             _sync = false;
             do {
+                printf("Scheduler: %u\n", choice);
                 scheduler.run(choice);
             } while (nextPartition(choice));
             cudaDeviceSynchronize();

@@ -12,7 +12,7 @@
 
 class DiskGraph
 {
-private:
+public:
     std::vector<std::unique_ptr<DiskBuffer<edgeId>>> _rowptrs;
     std::vector<std::unique_ptr<DiskBuffer<nodeId>>> _cols;
 
@@ -88,7 +88,7 @@ public:
 
 class CPUGraph
 {
-private:
+public:
     std::vector<std::unique_ptr<CPUBuffer<edgeId>>> _rowptrs;
     std::vector<std::unique_ptr<CPUBuffer<nodeId>>> _cols;
 
@@ -159,7 +159,7 @@ public:
 
 class GPUGraph
 {
-private:
+public:
     GPUVectorPool<u_int8_t> _graph;
 
     std::unordered_map<partitionId, size_t> _index;

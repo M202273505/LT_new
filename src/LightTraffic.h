@@ -26,7 +26,7 @@ public:
         printf("number of partitons: %u, graph memory pool: %lu MB, walker memory pool: %lu MB\n",
             _partitions.numPartition(),
             _partitions.partitionSize() * config._numDevicePartition / 1024 / 1024,
-            pageSize * _gpu->_walkman.numPage() * sizeof(Walker) / 1024 / 1024
+            pageSize_GPU * _gpu->_walkman.numPage() * sizeof(Walker) / 1024 / 1024
         );
     }
 

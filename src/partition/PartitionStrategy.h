@@ -63,7 +63,7 @@ public:
 };
 
 class MaterializedStrategy: public PartitionStrategy {
-private:
+public:
     partitionId _numPartition;
     size_t _partition_size;
     nodeId *_nodeOffset;
@@ -177,7 +177,7 @@ public:
 };
 
 class EqualSizeStrategy: public PartitionStrategy {
-private:
+public:
     std::vector<nodeId> _nodeOffset;
     std::vector<edgeId> _edgeOffset;
 

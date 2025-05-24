@@ -16,6 +16,7 @@ public:
     void create(Walker *walkers, walkId &length, cudaRand &rand, CUDAStream &stream) {
         length = length > _numWalker - _generated? _numWalker - _generated: length;
         init(walkers, length, rand, stream);
+        gpuCall(cudaStreamSynchronize(stream.get())); // 等待当前流上的所有先前操作完成
         _generated += length;
     }
 

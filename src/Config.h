@@ -71,8 +71,8 @@ public:
         _numDevicePartition = std::min(_partitions->numPartition(), getNum<partitionId>(opt->getValue('p'), _partitions->numPartition()));
         _numWalker = getNum<walkId>(opt->getValue('w'), _partitions->numNode() * 2);
         _numDeviceWalker = std::min(_numWalker, getNum<walkId>(opt->getValue('b'), _numWalker));
-        if (_numDeviceWalker != _numWalker && _numDeviceWalker <= _partitions->numPartition() * pageSize) {
-            printf("GPU memory pool for walkers should be capable to save at least %u walkers for memory safety!\n", _partitions->numPartition() * pageSize);
+        if (_numDeviceWalker != _numWalker && _numDeviceWalker <= _partitions->numPartition() * pageSize_GPU) {
+            printf("GPU memory pool for walkers should be capable to save at least %u walkers for memory safety!\n", _partitions->numPartition() * pageSize_GPU);
         }
         if (sizeof(BlockScan::TempStorage) + sizeof(u_int32_t) * (_partitions->numPartition() * 2 + 1 + 2 * walkerPerThread * threadPerBlock) + sizeof(partitionId) * walkerPerThread * threadPerBlock > sharedMemPerBlock) {
             printf("GPU shared memory overflow! Please consider reduce the number of partitions or batch size.\n");

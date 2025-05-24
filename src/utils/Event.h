@@ -3,7 +3,7 @@
 class CUDAEvent;
 
 class CUDAStream {
-private:
+public:
     cudaStream_t _stream;
     int _deviceId;
 
