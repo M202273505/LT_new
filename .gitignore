@@ -2,6 +2,12 @@
 *.zip
 /dataset
 
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
 converter_*
 rm_isolated_vertices
 pagerank
